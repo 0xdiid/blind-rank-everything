@@ -1,4 +1,10 @@
-import { createRound, isValidRound, roundMode, ROUND_MODES } from "./game.js";
+import {
+  createRound,
+  isValidRound,
+  roundMode,
+  ROUND_MODES,
+  ROUND_POLICY_VERSION,
+} from "./game.js";
 import { readStorage, writeStorage } from "./storage.js";
 
 export const SEEN_KEY = "blindrank:seen:v1";
@@ -19,7 +25,13 @@ export function loadRound(catalog, mode, { fresh = false } = {}) {
   if (typeof mode !== "string" || !Object.hasOwn(ROUND_MODES, mode))
     throw new Error("Unknown game mode.");
   const saved = readStorage(ROUND_KEYS[mode]);
-  if (!fresh && isValidRound(saved) && roundMode(saved) === mode) return saved;
+  if (
+    !fresh &&
+    isValidRound(saved) &&
+    roundMode(saved) === mode &&
+    (saved.policyVersion === ROUND_POLICY_VERSION || saved.placed > 0)
+  )
+    return saved;
   const seen = readStorage(SEEN_KEY, []);
   return createRound(
     catalog,

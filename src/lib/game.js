@@ -1,4 +1,4 @@
-import { topicFor } from "./topics.js";
+import { isConflictTopic, topicFor } from "./topics.js";
 
 export const ROUND_SIZE = 10;
 export const ROUND_MODES = {
@@ -7,7 +7,8 @@ export const ROUND_MODES = {
 };
 export const roundMode = (round) => round?.mode ?? "standard";
 export const roundSize = (round) => ROUND_MODES[roundMode(round)]?.size || 0;
-export const ROUND_POLICY_VERSION = 2;
+export const ROUND_POLICY_VERSION = 3;
+export const conflictLimit = (size) => size / ROUND_SIZE;
 export const ROUND_MIX = [
   { topics: ["events"], count: 4 },
   { topics: ["ideas"], count: 3 },
@@ -44,7 +45,14 @@ export function createRound(
         ]),
     ).values(),
   ];
-  if (unique.length < size)
+  const conflictIds = new Set(unique.filter(isConflictTopic).map((a) => a.id));
+  const maxConflicts = conflictLimit(size);
+  if (
+    unique.length -
+      conflictIds.size +
+      Math.min(conflictIds.size, maxConflicts) <
+    size
+  )
     throw new Error(
       `At least ${size} eligible articles are needed for a round.`,
     );
@@ -60,23 +68,29 @@ export function createRound(
   const candidates = [...fresh, ...recycled];
   const picked = new Set();
   const deck = [];
+  let conflicts = 0;
+  const canPick = (article) =>
+    !picked.has(article.id) &&
+    (!conflictIds.has(article.id) || conflicts < maxConflicts);
+  function pick(article) {
+    deck.push(article);
+    picked.add(article.id);
+    if (conflictIds.has(article.id)) conflicts++;
+  }
   for (const { topics, count } of ROUND_MIX) {
-    for (const article of candidates
-      .filter(
-        (article) => topics.includes(article.topic) && !picked.has(article.id),
-      )
-      .slice(0, count * (size / ROUND_SIZE))) {
-      deck.push(article);
-      picked.add(article.id);
+    let remaining = count * (size / ROUND_SIZE);
+    for (const article of candidates) {
+      if (!remaining) break;
+      if (topics.includes(article.topic) && canPick(article)) {
+        pick(article);
+        remaining--;
+      }
     }
   }
   // Small or incomplete libraries can fall back to other recognized topics, never people.
   for (const article of candidates) {
     if (deck.length === size) break;
-    if (!picked.has(article.id)) {
-      deck.push(article);
-      picked.add(article.id);
-    }
+    if (canPick(article)) pick(article);
   }
   return {
     policyVersion: ROUND_POLICY_VERSION,
@@ -124,7 +138,7 @@ export function isValidRound(value) {
   const size = ROUND_MODES[mode].size;
   if (
     !value ||
-    value.policyVersion !== ROUND_POLICY_VERSION ||
+    ![2, ROUND_POLICY_VERSION].includes(value.policyVersion) ||
     !Array.isArray(value.deck) ||
     value.deck.length !== size ||
     !value.deck.every(isArticle) ||
@@ -136,6 +150,11 @@ export function isValidRound(value) {
     !Number.isInteger(value.placed) ||
     value.placed < 0 ||
     value.placed > size
+  )
+    return false;
+  if (
+    value.policyVersion === ROUND_POLICY_VERSION &&
+    value.deck.filter(isConflictTopic).length > conflictLimit(size)
   )
     return false;
   const placed = value.slots.filter(Boolean);

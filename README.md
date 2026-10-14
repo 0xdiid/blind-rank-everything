@@ -45,6 +45,7 @@ Open `http://127.0.0.1:4173/blind-rank-everything/`. Other hosts can set `VITE_B
 ## How it plays
 
 - Standard rounds draw four events, three ideas, one culture topic, one food or drink, and one place or nature topic. Expert mode triples the mix: twelve events, nine ideas, three culture topics, three foods or drinks, and three nature or place topics. The reveal order is shuffled, and each category favors articles you have not seen in this browser.
+- Wars, battles, and related conflict topics are capped at one per Standard round and three per Expert round, including military ideas. The cap also applies when recycling seen cards or filling gaps in a small catalog. Earlier rounds already in progress keep their cards; unstarted rounds use the new balance.
 - An image and title are visible first. Hover or tap the info button for a description and the Wikipedia link; the title also opens the full article in a new tab.
 - Click a ranking slot. Standard mode also supports 1–9 / 0 for rank 10; in Expert mode, type a rank from 1 to 30 in the Rank field and press Enter. Placements cannot be moved.
 - Each mode saves its own round, so switching modes preserves progress. Your selected mode and shared seen history also persist in local storage. If storage is unavailable, gameplay still works in memory.

@@ -561,9 +561,14 @@ function App() {
       {modal?.type === "library" && (
         <Modal title="About this game" onClose={() => setModal(null)}>
           <p>
-            Each round contains four events, three ideas, one culture topic, one
-            food or drink, and one article about nature or a place. Biographies
-            are excluded. Expert mode triples this mix to 30 articles.
+            Standard rounds contain four events, three ideas, one culture topic,
+            one food or drink, and one article about nature or a place.
+            Biographies are excluded. Expert mode triples this mix to 30
+            articles.
+          </p>
+          <p>
+            Wars, battles, and related conflict topics are limited to one per
+            Standard round and three per Expert round.
           </p>
           <p>
             Articles come from Wikipedia’s most-read lists and a selection of

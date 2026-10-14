@@ -80,3 +80,19 @@ export function topicFor(article) {
 export function playableArticles(articles) {
   return articles.filter((article) => topicFor(article) !== null);
 }
+
+const CONFLICT_TERMS =
+  /\b(wars?|warfare|battles?|sieges?|invasions?|military|naval|armed (?:conflicts?|struggles?)|combat|offensives?|insurgenc(?:y|ies)|rebellions?|revolts?|uprisings?|coups?|massacres?|genocides?|pogroms?|bombings?|bombardments?|attacks?|raids?|conquests?|crusades?|blockades?|skirmish(?:es)?|hostilities|peace treat(?:y|ies)|armistices?|ceasefires?)\b/i;
+
+export function isConflictTopic(article) {
+  const topic = topicFor(article);
+  // Fiction and cultural works with "war" in the title aren't historical conflicts.
+  if (topic !== "events" && topic !== "ideas") return false;
+  if (CONFLICT_TERMS.test(article.description || "")) return true;
+  // "British Invasion" and "Political campaign" are ideas, not military events.
+  return topic === "events"
+    ? CONFLICT_TERMS.test(article.title || "") ||
+        /\b(conflicts?|confrontations?)\b/i.test(article.description || "") ||
+        /^(?:Campaign of|Capture of|Storming of)\b/i.test(article.title || "")
+    : /\b(wars?|warfare|military|combat)\b/i.test(article.title || "");
+}

@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createRound, placeCard, isValidRound } from "../src/lib/game.js";
+import { isConflictTopic } from "../src/lib/topics.js";
 
 const cards = Array.from({ length: 30 }, (_, id) => ({
   id,
@@ -10,6 +11,41 @@ const cards = Array.from({ length: 30 }, (_, id) => ({
   image: `https://upload.wikimedia.org/wikipedia/commons/${id}.jpg`,
   url: `https://en.wikipedia.org/wiki/Article_${id}`,
 }));
+
+const conflicts = cards.map((card) => ({
+  ...card,
+  id: card.id + 100,
+  title: `Battle ${card.id}`,
+  topic: "events",
+  description: "Military battle",
+}));
+
+test("fallback selection also respects conflict limits, even when only wars are unseen", () => {
+  for (const [mode, size, limit] of [
+    ["standard", 10, 1],
+    ["expert", 30, 3],
+  ]) {
+    const round = createRound(
+      [...conflicts, ...cards],
+      cards.map((a) => a.id),
+      () => 0.5,
+      mode,
+    );
+    assert.equal(round.deck.length, size);
+    assert.equal(round.deck.filter(isConflictTopic).length, limit);
+    assert.ok(isValidRound(round));
+    assert.throws(
+      () => createRound(conflicts, [], Math.random, mode),
+      /eligible articles/,
+    );
+  }
+});
+
+test("new saved rounds enforce the conflict limit while older rounds remain resumable", () => {
+  const round = { ...createRound(cards), deck: conflicts.slice(0, 10) };
+  assert.equal(isValidRound(round), false);
+  assert.ok(isValidRound({ ...round, policyVersion: 2 }));
+});
 
 test("expert rounds rank all thirty unique cards, including slots beyond ten", () => {
   let round = createRound([...cards, ...cards], [], Math.random, "expert");

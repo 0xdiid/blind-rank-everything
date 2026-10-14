@@ -1,7 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { topicFor, playableArticles } from "../src/lib/topics.js";
+import {
+  topicFor,
+  playableArticles,
+  isConflictTopic,
+} from "../src/lib/topics.js";
 import { createRound, isValidRound } from "../src/lib/game.js";
 
 const catalog = JSON.parse(
@@ -129,6 +133,98 @@ test("short descriptions with event date ranges are not mistaken for lifespans",
   );
 });
 
+test("conflict limits cover military events and ideas without excluding unrelated titles", () => {
+  const examples = [
+    ["events", "World War II", "Global conflict from 1939 to 1945", true],
+    ["events", "Battle of Alesia", "52 BC siege in Gaul", true],
+    ["events", "Suez Crisis", "1956 invasion of Egypt", true],
+    [
+      "events",
+      "Mexican Revolution",
+      "Nationwide armed struggle in Mexico (1910–1920)",
+      true,
+    ],
+    [
+      "events",
+      "Blockade of Saint-Domingue",
+      "1803 naval campaign of the Haitian Revolution",
+      true,
+    ],
+    [
+      "events",
+      "Cuban Missile Crisis",
+      "1962 confrontation between the US and USSR",
+      true,
+    ],
+    ["events", "Campaign of Tlemcen (1551)", "Algerian expedition", true],
+    [
+      "events",
+      "Attack on Pearl Harbor",
+      "1941 Japanese attack on the US",
+      true,
+    ],
+    [
+      "events",
+      "Bombardment of Mogador",
+      "1844 French naval attack in Morocco",
+      true,
+    ],
+    ["events", "Treaty of Versailles", "1919 peace treaty", true],
+    [
+      "ideas",
+      "Military technology",
+      "Application of technology for use in warfare",
+      true,
+    ],
+    [
+      "ideas",
+      "Thucydides Trap",
+      "Theorised tendency towards war between powers",
+      true,
+    ],
+    [
+      "ideas",
+      "War communism",
+      "1918–1921 economic and political system in Soviet Russia",
+      true,
+    ],
+    [
+      "culture",
+      "War of the Worlds",
+      "2005 American science fiction film",
+      false,
+    ],
+    ["culture", "Star Wars", "American space opera media franchise", false],
+    ["food", "War cake", "Type of cake", false],
+    [
+      "ideas",
+      "British Invasion",
+      "US cultural phenomenon of the mid-1960s",
+      false,
+    ],
+    [
+      "ideas",
+      "Political campaign",
+      "Attempt to influence decision-making",
+      false,
+    ],
+    [
+      "events",
+      "Industrial Revolution",
+      "Transition to new manufacturing processes",
+      false,
+    ],
+    ["events", "Apollo 11", "First crewed Moon landing (1969)", false],
+    ["events", "Woodstock", "1969 music festival", false],
+  ];
+  for (const [topic, title, description, expected] of examples)
+    assert.equal(
+      isConflictTopic({ topic, title, description }),
+      expected,
+      title,
+    );
+});
+
 test("the shipped library supports the requested mix across 1,000 shuffled rounds", () => {
   const playable = playableArticles(catalog);
   assert.ok(playable.length >= 1000);
@@ -148,6 +244,7 @@ test("the shipped library supports the requested mix across 1,000 shuffled round
     assert.equal(count("food"), 1);
     assert.equal(count("nature") + count("places"), 1);
     assert.equal(new Set(round.deck.map((article) => article.id)).size, 10);
+    assert.ok(round.deck.filter(isConflictTopic).length <= 1);
     assert.ok(isValidRound(round));
     firstIds.add(round.deck[0].id);
   }
@@ -175,8 +272,25 @@ test("expert rounds triple the topic mix without duplicate or previously seen ca
     assert.equal(count("culture"), 3);
     assert.equal(count("food"), 3);
     assert.equal(count("nature") + count("places"), 3);
+    assert.ok(round.deck.filter(isConflictTopic).length <= 3);
     assert.ok(isValidRound(round));
     seen = round.deck.map((article) => article.id);
+  }
+});
+
+test("unseen wars cannot crowd out seen non-conflict events", () => {
+  const seen = catalog.filter((a) => !isConflictTopic(a)).map((a) => a.id);
+  for (const [mode, events, limit] of [
+    ["standard", 4, 1],
+    ["expert", 12, 3],
+  ]) {
+    const round = createRound(catalog, seen, () => 0.5, mode);
+    assert.equal(
+      round.deck.filter((a) => topicFor(a) === "events").length,
+      events,
+    );
+    assert.equal(round.deck.filter(isConflictTopic).length, limit);
+    assert.ok(isValidRound(round));
   }
 });
 
