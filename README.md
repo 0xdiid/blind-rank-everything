@@ -57,6 +57,8 @@ The results screen's **Share results** button copies a PNG directly to the clipb
 
 **Image options** opens the preview with copy, download, and native image sharing where supported. If clipboard access is unavailable, this panel opens automatically. Native shares include the game's public URL; no social account is required and nothing is posted automatically.
 
+Links to the game include Open Graph and Twitter/X large-image metadata in the initial HTML. The preview is `public/social-preview.png` (1200 × 630), with editable artwork in `scripts/social-preview.svg`. The canonical and preview URLs in `index.html` point to GitHub Pages; update them if you move the site. This preview represents the game; individual results are shared through the copied ranking image.
+
 PNG rendering runs locally in the browser. Cross-origin image failures time out after six seconds and use a letter placeholder, preserving every title. The preview, clipboard, and download use the same PNG. Canceling the native share sheet leaves the ranking intact.
 
 ## Wikipedia data

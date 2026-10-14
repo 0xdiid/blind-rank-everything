@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <title>Blind rank everything</title>
+  <desc>A mystery article beside a partly filled ranking. Standard has 10 slots; Expert has 30.</desc>
+  <rect width="1200" height="630" fill="#fff" />
+  <g fill="#202122" font-family="Arial, Helvetica, sans-serif">
+    <text x="48" y="60" font-family="Georgia, serif" font-size="30">Blindrank</text>
+    <text x="48" y="127" font-family="Georgia, serif" font-size="54">Blind rank everything</text>
+    <path d="M48 147H1152" stroke="#a2a9b1" />
+    <text x="48" y="181" font-size="20">Standard <tspan font-size="16" fill="#54595d">10</tspan></text>
+    <text x="202" y="181" font-size="20" fill="#36c">Expert <tspan font-size="16" fill="#54595d">30</tspan></text>
+    <path d="M48 198H1152" stroke="#c8ccd1" />
+    <path d="M48 198H165" stroke="#202122" stroke-width="2" />
+    <text x="48" y="237" font-size="24">Rank them before you know what comes next.</text>
+
+    <rect x="48.5" y="268.5" width="339" height="263" fill="#f8f9fa" stroke="#a2a9b1" />
+    <rect x="53" y="273" width="330" height="198" fill="#eaecf0" />
+    <text x="218" y="415" text-anchor="middle" font-family="Georgia, serif" font-size="132" fill="#72777d">?</text>
+    <text x="68" y="510" font-family="Georgia, serif" font-size="28">What's next?</text>
+
+    <rect x="420.5" y="268.5" width="731" height="263" fill="#fff" stroke="#a2a9b1" />
+    <g fill="#f8f9fa">
+      <rect x="421" y="321.2" width="365" height="52.6" />
+      <rect x="421" y="426.4" width="365" height="52.6" />
+      <rect x="786" y="269" width="365" height="52.2" />
+      <rect x="786" y="373.8" width="365" height="52.6" />
+    </g>
+    <path d="M420 321.2H1152 M420 373.8H1152 M420 426.4H1152 M420 479H1152 M470 269V532 M836 269V532" fill="none" stroke="#c8ccd1" />
+    <path d="M786 269V532" stroke="#a2a9b1" />
+    <g font-size="22" fill="#54595d" text-anchor="middle">
+      <text x="445" y="303">1</text>
+      <text x="445" y="356">2</text>
+      <text x="445" y="408">3</text>
+      <text x="445" y="461">4</text>
+      <text x="445" y="513">5</text>
+      <text x="811" y="303">6</text>
+      <text x="811" y="356">7</text>
+      <text x="811" y="408">8</text>
+      <text x="811" y="461">9</text>
+      <text x="811" y="513">10</text>
+    </g>
+    <g font-size="24" fill="#36c">
+      <text x="488" y="356">Pizza</text>
+      <text x="488" y="461">Time travel</text>
+      <text x="854" y="303">Woodstock</text>
+      <text x="854" y="408">Roman Empire</text>
+    </g>
+    <g font-size="24" fill="#a2a9b1">
+      <text x="488" y="303">—</text>
+      <text x="488" y="408">—</text>
+      <text x="488" y="513">—</text>
+      <text x="854" y="356">—</text>
+      <text x="854" y="461">—</text>
+      <text x="854" y="513">—</text>
+    </g>
+    <text x="1152" y="566" font-size="18" fill="#54595d" text-anchor="end">4 of 10 ranked</text>
+    <text x="48" y="595" font-size="19" fill="#54595d">Events, ideas, culture, food, nature, and places. From Wikipedia.</text>
+  </g>
+</svg>
