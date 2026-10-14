@@ -44,6 +44,21 @@ test("biographies, including people described by events, do not enter the deck",
 test("event locations and company subject areas do not determine their category", () => {
   const examples = [
     ["Google", "American multinational technology company", null],
+    [
+      "NATO headquarters",
+      "Headquarters of the North Atlantic Treaty Organization",
+      null,
+    ],
+    [
+      "Provisional Polish Revolutionary Committee",
+      "Organization in the Polish–Soviet War",
+      null,
+    ],
+    [
+      "United States Naval Observatory",
+      "Scientific agency in the United States",
+      null,
+    ],
     ["FIFA World Cup Trophy", "Award for victors of the FIFA World Cup", null],
     [
       "Chief Minister of Bihar",
@@ -90,6 +105,27 @@ test("films about events stay in culture, and event-related objects are not even
         "Theorised tendency towards war between emerging and existing powers",
     }),
     "ideas",
+  );
+});
+
+test("short descriptions with event date ranges are not mistaken for lifespans", () => {
+  assert.equal(
+    topicFor({
+      title: "War in southern Vietnam (1945–1946)",
+      description: "Prelude to the Indochina Wars (1946–1991)",
+      extract: "Prelude to the Indochina Wars (1946–1991)",
+      summaryComplete: false,
+    }),
+    "events",
+  );
+  assert.equal(
+    topicFor({
+      title: "Ulysses S. Grant",
+      description: "Civil War general (1822–1885)",
+      extract: "Civil War general (1822–1885)",
+      summaryComplete: false,
+    }),
+    null,
   );
 });
 

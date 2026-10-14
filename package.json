@@ -21,7 +21,8 @@
     "test": "node --test tests/*.test.js",
     "refresh:catalog": "node scripts/refresh-catalog.mjs",
     "format": "prettier --write src tests scripts index.html README.md package.json vite.config.js",
-    "enrich:catalog": "node scripts/enrich-catalog.mjs"
+    "enrich:catalog": "node scripts/enrich-catalog.mjs",
+    "expand:catalog": "node scripts/expand-catalog.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",

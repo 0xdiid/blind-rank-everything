@@ -63,6 +63,7 @@ const known = new Set(
 const allTitles = [...titles].filter((title) => !known.has(title));
 async function save() {
   const catalog = {
+    ...existing,
     version: CATALOG_VERSION,
     updatedAt: new Date().toISOString(),
     months: [...new Set([...(existing?.months || []), ...successfulMonths])],

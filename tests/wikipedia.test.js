@@ -126,6 +126,22 @@ test("top lists filter utility pages and merge redirected articles by page id", 
   );
 });
 
+test("large imports can request short descriptions without expensive lead extracts", async () => {
+  const result = await fetchArticles(
+    ["Capybara"],
+    async (url) => {
+      assert.ok(!new URL(url).searchParams.get("prop").includes("extracts"));
+      assert.equal(new URL(url).searchParams.has("exlimit"), false);
+      return Response.json({
+        query: { pages: [{ ...page, extract: undefined }] },
+      });
+    },
+    { allowShortDescriptions: true, includeExtracts: false },
+  );
+  assert.equal(result[0].extract, "Largest living rodent");
+  assert.equal(result[0].summaryComplete, false);
+});
+
 test("rate limits and API errors reject cleanly for the caller to use its bundled fallback", async () => {
   await assert.rejects(
     fetchJson(

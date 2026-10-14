@@ -22,6 +22,7 @@ npm run preview      # Preview the production build
 npm run format       # Format source files
 npm run refresh:catalog
 npm run enrich:catalog
+npm run expand:catalog
 ```
 
 The app is a static React + Vite site. Deploy `dist/` to a static host. It requires no API keys, backend, account system, or database.
@@ -60,9 +61,9 @@ PNG rendering runs locally in the browser. Cross-origin image failures time out 
 
 ## Wikipedia data
 
-`public/catalog.json` combines twelve complete months of English Wikipedia's top-1,000 pageview lists with selected topics in history, science, philosophy, culture, food, and geography. The builder deduplicates redirects by page ID and excludes lists, utility pages, disambiguation pages, and articles without a main image or description.
+`public/catalog.json` combines twelve complete months of English Wikipedia's top-1,000 pageview lists with selected topics, Wikipedia's Vital Articles lists, and subject lists in history, science, philosophy, culture, food, and geography. The builder deduplicates redirects by page ID and excludes lists, utility pages, disambiguation pages, and articles without a main image or description.
 
-The source file retains biographies, but the game filters them out. Reviewed seed topics have explicit categories; other articles are classified conservatively from Wikipedia's descriptions. Unrecognized subjects are skipped. The playable library has more than 1,000 articles. If a small custom library cannot fill the category mix, the game fills the remaining slots from other eligible topics.
+The source file retains biographies from the popularity imports, but the game filters them out. Reviewed seed topics have explicit categories; other articles are classified conservatively from Wikipedia's descriptions. Unrecognized subjects are skipped. The playable library has more than 5,000 articles, with at least five times the original selection in every topic. If a small custom library cannot fill the category mix, the game fills the remaining slots from other eligible topics.
 
 The bundled cards include main-image URLs, article links, short descriptions, and lead excerpts where available. When a card only has a short description, opening its details requests the longer Wikipedia excerpt and caches it for the session. The existing description remains usable if Wikipedia is slow or unavailable. Images are served by Wikimedia; a visual fallback appears if an image fails to load.
 
@@ -74,13 +75,18 @@ Run `npm run refresh:catalog` periodically to expand the bundle using the latest
 
 Run `npm run enrich:catalog` to import the topic lists in `scripts/topic-seeds.mjs`. This adds subjects that are underrepresented in the most-read lists and preserves their categories during later popularity refreshes. It also saves checkpoints and backs off when Wikimedia throttles requests.
 
-The script fetches up to fifty article records per call, requesting both excerpts and short descriptions. Wikipedia limits the number of full extracts in each batch; remaining cards use their real short descriptions until longer excerpts are requested in the app.
+Run `npm run expand:catalog` to draw additional candidates from the curated lists in `scripts/catalog-sources.mjs`. The importer interleaves sources, uses a stable shuffle to avoid alphabetical bias, and caps each topic separately. List membership does not assign a category: each card must pass the same topic and biography filters as the game. It saves after each batch and skips existing page IDs. Change the sources and targets in that file to expand the library further.
+
+Expansion screens up to 500 linked pages per request using descriptions and main-image metadata, then fetches thumbnails for eligible cards in batches of 50. Full excerpts use the game's existing on-demand fetch. A local `.cache/` checkpoint, ignored by Git and valid for 24 hours, avoids repeating completed discovery and metadata requests after an interruption. Delete it to recheck candidates immediately.
+
+Popularity and seed imports fetch up to fifty article records per call, requesting both excerpts and short descriptions. Wikipedia limits the number of full extracts in each batch; remaining cards use their real short descriptions until longer excerpts are requested in the app.
 
 In development, catalog checkpoints do not trigger a page reload. Refresh the browser after the import completes to load the expanded library; your current round is preserved.
 
 ### Sources and attribution
 
 - [Wikimedia Analytics API](https://doc.wikimedia.org/generated-data-platform/aqs/analytics-api/) — monthly most-read articles.
+- [Wikipedia Vital Articles](https://en.wikipedia.org/wiki/Wikipedia:Vital_articles) — curated subjects across history, culture, science, and geography; biography lists are omitted.
 - [MediaWiki Action API](https://www.mediawiki.org/wiki/API:Main_page) — article IDs, canonical links, summaries, descriptions, and main images.
 - Wikipedia excerpts are available under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). The app normalizes whitespace and uses short excerpts; article links lead to the source and contributor history.
 - Images retain their individual licenses and attribution requirements. Every card's details link to its Wikipedia file page for the original image, author, and license. Images are hotlinked, not republished in this repository.
@@ -99,6 +105,7 @@ This is an independent project, not affiliated with the Wikimedia Foundation. Th
 - `src/lib/useArticleSummary.js`: on-demand excerpt enrichment.
 - `scripts/refresh-catalog.mjs`: resumable catalog generation.
 - `scripts/enrich-catalog.mjs`: topic-list imports for the round mix.
+- `scripts/expand-catalog.mjs`: broader imports from Wikipedia's curated lists.
 - `tests/`: Node's built-in test runner; no extra testing runtime needed.
 
 ## Contributing

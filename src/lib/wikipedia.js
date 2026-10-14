@@ -85,7 +85,7 @@ export function normalizePage(page, { allowShortDescriptions = false } = {}) {
 export async function fetchArticles(
   titles,
   fetcher = fetch,
-  { allowShortDescriptions = false } = {},
+  { allowShortDescriptions = false, includeExtracts = true } = {},
 ) {
   if (!titles.length) return [];
   const params = new URLSearchParams({
@@ -93,14 +93,20 @@ export async function fetchArticles(
     format: "json",
     formatversion: "2",
     origin: "*",
-    prop: "pageimages|extracts|info|pageprops",
+    prop: includeExtracts
+      ? "pageimages|extracts|info|pageprops"
+      : "pageimages|info|pageprops",
     inprop: "url",
     piprop: "thumbnail|name",
     pithumbsize: "800",
-    exintro: "1",
-    explaintext: "1",
-    exsentences: "3",
-    exlimit: "max",
+    ...(includeExtracts
+      ? {
+          exintro: "1",
+          explaintext: "1",
+          exsentences: "3",
+          exlimit: "max",
+        }
+      : {}),
     redirects: "1",
     titles: titles.slice(0, allowShortDescriptions ? 50 : 20).join("|"),
   });

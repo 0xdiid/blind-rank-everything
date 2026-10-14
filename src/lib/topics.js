@@ -11,7 +11,12 @@ export const TOPIC_LABELS = {
 // remain in the source library, rather than filling gaps in a round.
 export function topicFor(article) {
   const description = article.description || "";
-  const lead = article.extract?.slice(0, 450) || "";
+  // A short description can contain an event's date range; it is not a
+  // biographical lead. Only inspect actual excerpts for parenthetical lifespans.
+  const lead =
+    article.summaryComplete === false
+      ? ""
+      : article.extract?.slice(0, 450) || "";
   const isPerson =
     /\b(born|actor|actress|politician|singer|songwriter|footballer|rapper|businessman|businesswoman|entrepreneur|journalist|comedian|filmmaker|musician|player|coach|wrestler|boxer|cricketer|golfer|racing driver|billionaire|serial killer|murderer|assassin|physicist|mathematician|philosopher|novelist|poet|historian|engineer|inventor|scientist|explorer|astronaut|monarch|emperor|empress|king of|queen of|president of|prime minister|activist|influencer|youtuber|streamer|pornographic|model and|fashion model|fashion designer|military officer|military leader|royal consort|cardinal|bishop|pope|cleric|religious leader|general|captain|soldier|convicted|criminal|statesman|stateswoman|author|writer|composer|painter|photographer|sculptor|aviator|pioneer|aristocrat|nobleman|countess|duke|earl|prince|princess|president|ruler|director|critic|personality|film star|film-making duo)\b/i.test(
       description,
@@ -24,7 +29,7 @@ export function topicFor(article) {
   // A company mentioning technology is not a concept; an aircraft mentioning a
   // war is not an event. Skip these ambiguous candidates unless reviewed above.
   if (
-    /\b(company|corporation|conglomerate|executive branch|chief executive|armed forces|aircraft|drone|cruise ship|freighter|trophy|award for|delegation|regulatory body|spoon|utensil)\b/i.test(
+    /\b(company|corporation|conglomerate|organization|organisation|agency|committee|headquarters|military unit|regiment|battalion|executive branch|chief executive|armed forces|aircraft|drone|cruise ship|freighter|trophy|award for|delegation|regulatory body|spoon|utensil)\b/i.test(
       description,
     ) ||
     /^(Individual Neutral Athletes|Athletes) at\b/i.test(title)
