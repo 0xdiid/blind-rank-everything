@@ -11,6 +11,51 @@ const cards = Array.from({ length: 30 }, (_, id) => ({
   url: `https://en.wikipedia.org/wiki/Article_${id}`,
 }));
 
+test("expert rounds rank all thirty unique cards, including slots beyond ten", () => {
+  let round = createRound([...cards, ...cards], [], Math.random, "expert");
+  assert.equal(round.deck.length, 30);
+  assert.equal(round.slots.length, 30);
+  for (const invalid of [-1, 30, 100, 1.5, "1"])
+    assert.equal(placeCard(round, invalid), round);
+  for (let index = 29; index >= 0; index--) {
+    const current = round.deck[round.placed];
+    round = placeCard(round, index);
+    assert.equal(round.slots[index].id, current.id);
+    assert.equal(placeCard(round, index), round);
+    assert.ok(isValidRound(JSON.parse(JSON.stringify(round))));
+  }
+  assert.equal(round.placed, 30);
+  assert.equal(new Set(round.slots.map((card) => card.id)).size, 30);
+  assert.equal(placeCard(round, 0), round);
+  assert.throws(
+    () => createRound(cards.slice(0, 29), [], Math.random, "expert"),
+    /At least 30/,
+  );
+});
+
+test("saved rounds must match their mode while legacy ten-card rounds remain valid", () => {
+  const standard = createRound(cards);
+  const legacy = { ...standard };
+  delete legacy.mode;
+  assert.ok(isValidRound(legacy));
+  assert.equal(isValidRound({ ...standard, mode: "expert" }), false);
+  const expert = createRound(cards, [], Math.random, "expert");
+  assert.equal(isValidRound({ ...expert, mode: "standard" }), false);
+  assert.equal(isValidRound({ ...expert, mode: undefined }), false);
+  assert.equal(isValidRound({ ...expert, placed: 31 }), false);
+  assert.equal(
+    isValidRound({ ...expert, slots: expert.slots.slice(0, 10) }),
+    false,
+  );
+  for (const mode of ["unknown", "__proto__", ["expert"], null]) {
+    assert.equal(isValidRound({ ...expert, mode }), false);
+    assert.throws(
+      () => createRound(cards, [], Math.random, mode),
+      /Unknown game mode/,
+    );
+  }
+});
+
 test("new rounds contain ten unique articles and prioritize unseen cards", () => {
   const round = createRound(
     [...cards, ...cards],
@@ -76,5 +121,5 @@ test("malformed, unsafe, duplicated, or inconsistent saved rounds are rejected",
   const unsafe = structuredClone(round);
   unsafe.deck[0].url = "javascript:alert(1)";
   assert.equal(isValidRound(unsafe), false);
-  assert.throws(() => createRound(cards.slice(0, 9)), /At least ten/);
+  assert.throws(() => createRound(cards.slice(0, 9)), /At least 10/);
 });

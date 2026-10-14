@@ -2,7 +2,7 @@
   "name": "blind-rank-everything",
   "version": "1.0.0",
   "private": true,
-  "description": "Blind rank ten Wikipedia articles, one at a time.",
+  "description": "Blind rank 10 or 30 Wikipedia articles, one at a time.",
   "license": "MIT",
   "author": "0xdiid",
   "homepage": "https://0xdiid.github.io/blind-rank-everything/",

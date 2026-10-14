@@ -6,8 +6,6 @@ import {
   imageShareData,
   rankingAltText,
   SHARE_FILENAME,
-  SHARE_WIDTH,
-  SHARE_HEIGHT,
 } from "./lib/share.js";
 
 export default function ShareRanking({ articles, Dialog, onNewRound }) {
@@ -64,7 +62,7 @@ export default function ShareRanking({ articles, Dialog, onNewRound }) {
     setWorking(true);
     setMessage("");
     try {
-      await navigator.share(imageShareData(image.file));
+      await navigator.share(imageShareData(image.file, articles.length));
     } catch (failure) {
       if (failure.name !== "AbortError")
         setMessage(
@@ -125,8 +123,8 @@ export default function ShareRanking({ articles, Dialog, onNewRound }) {
                 className="share-preview"
                 src={image.url}
                 alt={rankingAltText(articles)}
-                width={SHARE_WIDTH}
-                height={SHARE_HEIGHT}
+                width={image.width}
+                height={image.height}
               />
               <div className="share-actions">
                 <button
@@ -155,7 +153,8 @@ export default function ShareRanking({ articles, Dialog, onNewRound }) {
               </div>
               {image.missingImages > 0 && (
                 <p className="fine-print">
-                  Some thumbnails were unavailable. All ten titles are included.
+                  Some thumbnails were unavailable. All {articles.length} titles
+                  are included.
                 </p>
               )}
               <p className="share-message" role="status">

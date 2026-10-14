@@ -1,6 +1,6 @@
 # Blindrank
 
-A Wikipedia discovery game. Ten random articles, revealed one at a time. Put each in an empty slot from 1 (best) to 10 (worst), without knowing what comes next.
+A Wikipedia discovery game. Ten random articles, revealed one at a time. Expert mode raises it to thirty. Put each in an empty slot from 1 (best) to 10 or 30 (worst), without knowing what comes next.
 
 [Play Blindrank](https://0xdiid.github.io/blind-rank-everything/)
 
@@ -44,16 +44,16 @@ Open `http://127.0.0.1:4173/blind-rank-everything/`. Other hosts can set `VITE_B
 
 ## How it plays
 
-- Each round draws four events, three ideas, one culture topic, one food or drink, and one place or nature topic. The reveal order is shuffled, and each category favors articles you have not seen in this browser.
+- Standard rounds draw four events, three ideas, one culture topic, one food or drink, and one place or nature topic. Expert mode triples the mix: twelve events, nine ideas, three culture topics, three foods or drinks, and three nature or place topics. The reveal order is shuffled, and each category favors articles you have not seen in this browser.
 - An image and title are visible first. Hover or tap the info button for a description and the Wikipedia link; the title also opens the full article in a new tab.
-- Click a ranking slot, or press 1–9 / 0 for rank 10. Placements cannot be moved.
-- Your round and seen history persist in local storage. If storage is unavailable, gameplay still works in memory.
+- Click a ranking slot. Standard mode also supports 1–9 / 0 for rank 10; in Expert mode, type a rank from 1 to 30 in the Rank field and press Enter. Placements cannot be moved.
+- Each mode saves its own round, so switching modes preserves progress. Your selected mode and shared seen history also persist in local storage. If storage is unavailable, gameplay still works in memory.
 - Complete a round to share a ranking image, inspect any placed article, or start again. Starting over mid-round asks for confirmation.
 - The layout adapts to mobile, dialogs support keyboard focus and Escape, and animations respect reduced-motion preferences.
 
 ## Sharing
 
-The results screen's **Share results** button copies a 1600 × 900 PNG directly to the clipboard. It uses the two-column ranking table: ranks 1–5 on the left, 6–10 on the right, with thumbnails, blue titles, and the game's public URL beneath the table. The image is prepared when the round finishes so copying can run immediately from the click.
+The results screen's **Share results** button copies a PNG directly to the clipboard. Standard results use 1600 × 900 pixels. Expert results use a 2400 × 1350 image with three columns: ranks 1–10, 11–20, and 21–30. Standard mode uses the two-column ranking table: ranks 1–5 on the left, 6–10 on the right, with thumbnails, blue titles, and the game's public URL beneath the table. The image is prepared when the round finishes so copying can run immediately from the click.
 
 **Image options** opens the preview with copy, download, and native image sharing where supported. If clipboard access is unavailable, this panel opens automatically. Native shares include the game's public URL; no social account is required and nothing is posted automatically.
 
@@ -98,7 +98,8 @@ This is an independent project, not affiliated with the Wikimedia Foundation. Th
 - `src/App.jsx`: responsive game, reveal cards, ranking board, and dialogs.
 - `src/styles.css`: visual design and responsive layouts.
 - The design uses Georgia headings, Arial body text, blue links, and thin gray borders inspired by Wikipedia. It loads no external fonts.
-- `src/lib/game.js`: pure round generation, ranking, and saved-state validation.
+- `src/lib/game.js`: mode definitions, round generation, ranking, and saved-state validation.
+- `src/lib/round-storage.js`: separate saved rounds and mode preference, including existing Standard rounds.
 - `src/lib/topics.js`: category classification and biography filtering.
 - `src/lib/wikipedia.js`: public Wikimedia API client and article normalization.
 - `src/lib/catalog.js`: bundled library loading and daily browser cache.

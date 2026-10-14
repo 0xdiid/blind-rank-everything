@@ -50,6 +50,68 @@ test("native sharing carries the image and the canonical game URL", () => {
     data.text.includes("https://0xdiid.github.io/blind-rank-everything/"),
   );
   assert.equal(data.title, "My blind ranking");
+  assert.match(
+    imageShareData(file, 30).text,
+    /30 Wikipedia articles \(Expert mode\)/,
+  );
+});
+
+test("both result images contain every rank in reading order, even when thumbnails fail", async (t) => {
+  // Exercise the canvas renderer without relying on Wikimedia or a browser.
+  const previous = { Image: globalThis.Image, document: globalThis.document };
+  t.after(() => Object.assign(globalThis, previous));
+  globalThis.Image = class {
+    set src(_) {
+      queueMicrotask(() => this.onerror?.());
+    }
+  };
+  for (const count of [10, 30]) {
+    const drawn = [];
+    const context = {
+      fillRect() {},
+      strokeRect() {},
+      measureText: (text) => ({ width: text.length * 15 }),
+      fillText: (text, x, y) => drawn.push({ text, x, y }),
+    };
+    const canvas = {
+      getContext: () => context,
+      toBlob: (callback) => callback(new Blob(["png"], { type: "image/png" })),
+    };
+    globalThis.document = { createElement: () => canvas };
+    const articles = Array.from({ length: count }, (_, i) => ({
+      title: `Article ${i + 1}`,
+      image: "unavailable",
+    }));
+    const result = await createRankingImage(articles);
+    assert.equal(result.width / result.height, 16 / 9);
+    assert.equal(result.width, count === 30 ? 2400 : 1600);
+    assert.equal(result.missingImages, count);
+    assert.deepEqual(
+      drawn
+        .filter(({ text }) => /^Article \d+$/.test(text))
+        .map(({ text }) => text),
+      articles.map((a) => a.title),
+    );
+    assert.deepEqual(
+      drawn
+        .filter(({ text }) => /^\d+$/.test(text))
+        .map(({ text }) => Number(text)),
+      Array.from({ length: count }, (_, i) => i + 1),
+    );
+    assert.ok(
+      drawn.every(
+        ({ x, y }) =>
+          x >= 0 && x <= canvas.width && y >= 0 && y < canvas.height,
+      ),
+    );
+    assert.ok(drawn.some(({ text }) => text === `${count} of ${count} ranked`));
+    if (count === 30)
+      assert.ok(drawn.some(({ text }) => text.includes("Expert mode")));
+  }
+  await assert.rejects(
+    createRankingImage(Array(30).fill(null)),
+    /Complete all ranks/,
+  );
 });
 
 test("file sharing requires both share support and acceptance of this PNG", () => {
@@ -94,9 +156,9 @@ test("image text wraps long titles and unbroken words without losing characters"
 test("accessible ranking preserves the exact order and incomplete rounds cannot export", async () => {
   const articles = [{ title: "Ramen" }, { title: "The Renaissance" }];
   assert.match(rankingAltText(articles), /1\. Ramen; 2\. The Renaissance/);
-  await assert.rejects(createRankingImage(articles), /Complete all ten/);
+  await assert.rejects(createRankingImage(articles), /Complete all ranks/);
   await assert.rejects(
     createRankingImage(Array(10).fill(null)),
-    /Complete all ten/,
+    /Complete all ranks/,
   );
 });

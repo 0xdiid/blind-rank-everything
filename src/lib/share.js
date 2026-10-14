@@ -5,11 +5,11 @@ export const GAME_URL =
 export const SHARE_WIDTH = 1600;
 export const SHARE_HEIGHT = 900;
 
-export function imageShareData(file) {
+export function imageShareData(file, count = 10) {
   return {
     files: [file],
     title: "My blind ranking",
-    text: `My blind ranking of ten Wikipedia articles. ${GAME_URL}`,
+    text: `My blind ranking of ${count} Wikipedia articles${count === 30 ? " (Expert mode)" : ""}. ${GAME_URL}`,
   };
 }
 
@@ -99,14 +99,24 @@ function drawTitle(context, title, x, centerY, width) {
 }
 
 export async function createRankingImage(articles) {
-  if (articles.length !== 10 || articles.some((article) => !article?.title))
-    throw new Error("Complete all ten ranks before sharing.");
+  if (
+    ![10, 30].includes(articles.length) ||
+    articles.some((article) => !article?.title)
+  )
+    throw new Error("Complete all ranks before sharing.");
+  const expert = articles.length === 30;
+  const columns = expert ? 3 : 2;
+  const rows = articles.length / columns;
+  const rowHeight = expert ? 100 : 112;
+  const imageSize = expert ? 64 : 72;
   const images = await Promise.all(
     articles.map((article) => loadImage(article.image)),
   );
   const canvas = document.createElement("canvas");
-  canvas.width = SHARE_WIDTH;
-  canvas.height = SHARE_HEIGHT;
+  canvas.width = expert ? 2400 : SHARE_WIDTH;
+  canvas.height = expert ? 1350 : SHARE_HEIGHT;
+  const columnWidth = (canvas.width - 96) / columns;
+  const tableBottom = 190 + rows * rowHeight;
   const context = canvas.getContext("2d");
   if (!context) throw new Error("Your browser could not create the image.");
   context.fillStyle = "#fff";
@@ -115,39 +125,48 @@ export async function createRankingImage(articles) {
   context.font = "48px Georgia, serif";
   context.fillText("Blind rank everything", 48, 86);
   context.font = "28px Arial, sans-serif";
-  context.fillText("Your ranking", 48, 151);
+  context.fillText(
+    expert ? "Expert mode · Your ranking" : "Your ranking",
+    48,
+    151,
+  );
   context.fillStyle = "#54595d";
   context.textAlign = "right";
-  context.fillText("1 best · 10 worst", 1552, 151);
+  context.fillText(`1 best · ${articles.length} worst`, canvas.width - 48, 151);
   context.textAlign = "left";
   context.textBaseline = "middle";
 
   articles.forEach((article, index) => {
-    const left = index < 5 ? 48 : 800;
-    const top = 190 + (index % 5) * 112;
+    const left = 48 + Math.floor(index / rows) * columnWidth;
+    const top = 190 + (index % rows) * rowHeight;
+    const centerY = top + rowHeight / 2;
+    const imageTop = top + (rowHeight - imageSize) / 2;
     context.fillStyle = "#f8f9fa";
-    context.fillRect(left, top, 752, 112);
+    context.fillRect(left, top, columnWidth, rowHeight);
     context.strokeStyle = "#c8ccd1";
     context.lineWidth = 2;
-    context.strokeRect(left, top, 752, 112);
+    context.strokeRect(left, top, columnWidth, rowHeight);
     context.fillStyle = "#c8ccd1";
-    context.fillRect(left + 70, top, 2, 112);
+    context.fillRect(left + 70, top, 2, rowHeight);
     context.fillStyle = "#54595d";
     context.font = "28px Arial, sans-serif";
     context.textAlign = "center";
-    context.fillText(String(index + 1), left + 35, top + 56);
+    context.fillText(String(index + 1), left + 35, centerY);
     context.textAlign = "left";
     const image = images[index];
     context.fillStyle = "#eaecf0";
-    context.fillRect(left + 90, top + 20, 72, 72);
+    context.fillRect(left + 90, imageTop, imageSize, imageSize);
     if (image) {
-      const ratio = Math.min(72 / image.naturalWidth, 72 / image.naturalHeight);
+      const ratio = Math.min(
+        imageSize / image.naturalWidth,
+        imageSize / image.naturalHeight,
+      );
       const width = image.naturalWidth * ratio;
       const height = image.naturalHeight * ratio;
       context.drawImage(
         image,
-        left + 90 + (72 - width) / 2,
-        top + 20 + (72 - height) / 2,
+        left + 90 + (imageSize - width) / 2,
+        imageTop + (imageSize - height) / 2,
         width,
         height,
       );
@@ -155,23 +174,27 @@ export async function createRankingImage(articles) {
       context.fillStyle = "#72777d";
       context.textAlign = "center";
       context.font = "30px Georgia, serif";
-      context.fillText(article.title[0], left + 126, top + 56);
+      context.fillText(article.title[0], left + 90 + imageSize / 2, centerY);
       context.textAlign = "left";
     }
-    drawTitle(context, article.title, left + 182, top + 56, 546);
+    drawTitle(context, article.title, left + 182, centerY, columnWidth - 206);
   });
   context.strokeStyle = "#a2a9b1";
-  context.strokeRect(48, 190, 1504, 560);
+  context.strokeRect(48, 190, canvas.width - 96, rows * rowHeight);
   context.fillStyle = "#54595d";
   context.font = "24px Arial, sans-serif";
   context.textAlign = "right";
-  context.fillText("10 of 10 ranked", 1552, 796);
+  context.fillText(
+    `${articles.length} of ${articles.length} ranked`,
+    canvas.width - 48,
+    tableBottom + 46,
+  );
   context.textAlign = "left";
   context.fillStyle = "#36c";
-  context.fillText(GAME_URL.replace(/^https:\/\//, ""), 48, 796);
+  context.fillText(GAME_URL.replace(/^https:\/\//, ""), 48, tableBottom + 46);
   context.fillStyle = "#54595d";
   context.font = "20px Arial, sans-serif";
-  context.fillText("Articles from Wikipedia", 48, 849);
+  context.fillText("Articles from Wikipedia", 48, tableBottom + 99);
   const blob = await new Promise((resolve, reject) =>
     canvas.toBlob(
       (value) =>
@@ -183,6 +206,8 @@ export async function createRankingImage(articles) {
   );
   return {
     blob,
+    width: canvas.width,
+    height: canvas.height,
     file: new File([blob], SHARE_FILENAME, { type: "image/png" }),
     missingImages: images.filter((image) => !image).length,
   };

@@ -161,6 +161,25 @@ test("unseen cards are preferred within each topic before reusing that topic", (
   assert.ok(next.deck.every((article) => !seen.has(article.id)));
 });
 
+test("expert rounds triple the topic mix without duplicate or previously seen cards", () => {
+  let seen = [];
+  for (let i = 0; i < 100; i++) {
+    const round = createRound(catalog, seen, Math.random, "expert");
+    assert.equal(round.deck.length, 30);
+    assert.equal(new Set(round.deck.map((article) => article.id)).size, 30);
+    assert.ok(round.deck.every((article) => !seen.includes(article.id)));
+    const count = (topic) =>
+      round.deck.filter((article) => topicFor(article) === topic).length;
+    assert.equal(count("events"), 12);
+    assert.equal(count("ideas"), 9);
+    assert.equal(count("culture"), 3);
+    assert.equal(count("food"), 3);
+    assert.equal(count("nature") + count("places"), 3);
+    assert.ok(isValidRound(round));
+    seen = round.deck.map((article) => article.id);
+  }
+});
+
 test("person-heavy saved rounds and the previous selection policy are rejected", () => {
   const round = createRound(catalog);
   assert.equal(isValidRound({ ...round, policyVersion: 1 }), false);

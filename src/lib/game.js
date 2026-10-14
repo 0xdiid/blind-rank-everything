@@ -1,6 +1,12 @@
 import { topicFor } from "./topics.js";
 
 export const ROUND_SIZE = 10;
+export const ROUND_MODES = {
+  standard: { label: "Standard", size: 10 },
+  expert: { label: "Expert", size: 30 },
+};
+export const roundMode = (round) => round?.mode ?? "standard";
+export const roundSize = (round) => ROUND_MODES[roundMode(round)]?.size || 0;
 export const ROUND_POLICY_VERSION = 2;
 export const ROUND_MIX = [
   { topics: ["events"], count: 4 },
@@ -19,7 +25,15 @@ export function shuffle(items, random = Math.random) {
   return result;
 }
 
-export function createRound(catalog, seenIds = [], random = Math.random) {
+export function createRound(
+  catalog,
+  seenIds = [],
+  random = Math.random,
+  mode = "standard",
+) {
+  if (typeof mode !== "string" || !Object.hasOwn(ROUND_MODES, mode))
+    throw new Error("Unknown game mode.");
+  const size = ROUND_MODES[mode].size;
   const unique = [
     ...new Map(
       catalog
@@ -30,8 +44,10 @@ export function createRound(catalog, seenIds = [], random = Math.random) {
         ]),
     ).values(),
   ];
-  if (unique.length < ROUND_SIZE)
-    throw new Error("At least ten eligible articles are needed for a round.");
+  if (unique.length < size)
+    throw new Error(
+      `At least ${size} eligible articles are needed for a round.`,
+    );
   const seen = new Set(seenIds);
   const fresh = shuffle(
     unique.filter((article) => !seen.has(article.id)),
@@ -49,14 +65,14 @@ export function createRound(catalog, seenIds = [], random = Math.random) {
       .filter(
         (article) => topics.includes(article.topic) && !picked.has(article.id),
       )
-      .slice(0, count)) {
+      .slice(0, count * (size / ROUND_SIZE))) {
       deck.push(article);
       picked.add(article.id);
     }
   }
   // Small or incomplete libraries can fall back to other recognized topics, never people.
   for (const article of candidates) {
-    if (deck.length === ROUND_SIZE) break;
+    if (deck.length === size) break;
     if (!picked.has(article.id)) {
       deck.push(article);
       picked.add(article.id);
@@ -64,19 +80,22 @@ export function createRound(catalog, seenIds = [], random = Math.random) {
   }
   return {
     policyVersion: ROUND_POLICY_VERSION,
+    mode,
     deck: shuffle(deck, random),
-    slots: Array(ROUND_SIZE).fill(null),
+    slots: Array(size).fill(null),
     placed: 0,
   };
 }
 
 export function placeCard(round, index) {
+  const size = roundSize(round);
   if (
     !round ||
-    round.placed >= ROUND_SIZE ||
+    !size ||
+    round.placed >= size ||
     !Number.isInteger(index) ||
     index < 0 ||
-    index >= ROUND_SIZE ||
+    index >= size ||
     round.slots[index]
   )
     return round;
@@ -99,20 +118,24 @@ export function isArticle(value) {
 }
 
 export function isValidRound(value) {
+  const mode = value?.mode === undefined ? "standard" : value.mode;
+  if (typeof mode !== "string" || !Object.hasOwn(ROUND_MODES, mode))
+    return false;
+  const size = ROUND_MODES[mode].size;
   if (
     !value ||
     value.policyVersion !== ROUND_POLICY_VERSION ||
     !Array.isArray(value.deck) ||
-    value.deck.length !== ROUND_SIZE ||
+    value.deck.length !== size ||
     !value.deck.every(isArticle) ||
     !value.deck.every((article) => topicFor(article)) ||
-    new Set(value.deck.map((a) => a.id)).size !== ROUND_SIZE ||
+    new Set(value.deck.map((a) => a.id)).size !== size ||
     !Array.isArray(value.slots) ||
-    value.slots.length !== ROUND_SIZE ||
+    value.slots.length !== size ||
     !value.slots.every((slot) => slot === null || isArticle(slot)) ||
     !Number.isInteger(value.placed) ||
     value.placed < 0 ||
-    value.placed > ROUND_SIZE
+    value.placed > size
   )
     return false;
   const placed = value.slots.filter(Boolean);

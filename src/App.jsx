@@ -1,18 +1,17 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ArrowUpRight, Info, X } from "lucide-react";
 import ShareRanking from "./ShareRanking.jsx";
-import {
-  createRound,
-  isValidRound,
-  placeCard,
-  ROUND_SIZE,
-} from "./lib/game.js";
+import { placeCard, ROUND_MODES, roundMode, roundSize } from "./lib/game.js";
 import { loadCatalog, refreshCatalog } from "./lib/catalog.js";
 import { readStorage, writeStorage } from "./lib/storage.js";
 import { useArticleSummary } from "./lib/useArticleSummary.js";
 
-const ROUND_KEY = "blindrank:round:v2";
-const SEEN_KEY = "blindrank:seen:v1";
+import {
+  loadRound,
+  saveRound,
+  savedMode,
+  SEEN_KEY,
+} from "./lib/round-storage.js";
 
 function Modal({ title, onClose, children, className = "" }) {
   const dialog = useRef(null);
@@ -148,6 +147,11 @@ function App() {
   const [leaving, setLeaving] = useState(false);
   const [lastPlaced, setLastPlaced] = useState(null);
   const [announcement, setAnnouncement] = useState("");
+  const [rankInput, setRankInput] = useState("");
+  const [rankError, setRankError] = useState("");
+  const mode = roundMode(round);
+  const size = roundSize(round);
+  const expert = mode === "expert";
   const busy = useRef(false);
   const timer = useRef(null);
   const startup = useRef(null);
@@ -159,16 +163,7 @@ function App() {
     try {
       const data = await loadCatalog();
       setCatalog(data);
-      const saved = readStorage(ROUND_KEY);
-      const savedSeen = readStorage(SEEN_KEY, []);
-      setRound(
-        isValidRound(saved)
-          ? saved
-          : createRound(
-              data.articles,
-              Array.isArray(savedSeen) ? savedSeen : [],
-            ),
-      );
+      setRound(loadRound(data.articles, savedMode()));
       refreshCatalog(data)
         .then(setCatalog)
         .catch(() => {
@@ -188,7 +183,7 @@ function App() {
 
   useEffect(() => {
     if (!round) return;
-    writeStorage(ROUND_KEY, round);
+    saveRound(round);
     const savedSeen = readStorage(SEEN_KEY, []);
     const seen = Array.isArray(savedSeen) ? savedSeen : [];
     writeStorage(
@@ -197,7 +192,7 @@ function App() {
         ...new Set([
           ...seen,
           ...round.deck
-            .slice(0, Math.min(round.placed + 1, ROUND_SIZE))
+            .slice(0, Math.min(round.placed + 1, size))
             .map((article) => article.id),
         ]),
       ].slice(-15000),
@@ -205,19 +200,16 @@ function App() {
   }, [round]);
 
   useEffect(() => {
-    if (!round || round.placed >= ROUND_SIZE - 1) return;
+    if (!round || round.placed >= size - 1) return;
     const image = new Image();
     image.src = round.deck[round.placed + 1].image;
   }, [round]);
 
   function rank(index) {
-    if (
-      !round ||
-      busy.current ||
-      round.slots[index] ||
-      round.placed >= ROUND_SIZE
-    )
+    if (!round || busy.current || round.slots[index] || round.placed >= size)
       return;
+    setRankInput("");
+    setRankError("");
     busy.current = true;
     setLeaving(true);
     const title = round.deck[round.placed].title;
@@ -227,7 +219,7 @@ function App() {
       setLeaving(false);
       busy.current = false;
       setAnnouncement(
-        `${title} ranked ${index + 1}. ${round.placed === 9 ? "Ranking complete." : `Article ${round.placed + 2} of 10.`}`,
+        `${title} ranked ${index + 1}. ${round.placed === size - 1 ? "Ranking complete." : `Article ${round.placed + 2} of ${size}.`}`,
       );
       if (window.matchMedia("(max-width: 700px)").matches)
         reveal.current?.scrollIntoView({
@@ -244,6 +236,7 @@ function App() {
     function onKeyDown(event) {
       const target = event.target;
       if (
+        expert ||
         modal ||
         event.ctrlKey ||
         event.metaKey ||
@@ -265,24 +258,48 @@ function App() {
 
   function newRound() {
     if (!catalog || busy.current) return;
-    const seen = readStorage(SEEN_KEY, []);
-    setRound(createRound(catalog.articles, Array.isArray(seen) ? seen : []));
+    setRound(loadRound(catalog.articles, mode, { fresh: true }));
+    setRankInput("");
+    setRankError("");
     setLastPlaced(null);
     setModal(null);
-    setAnnouncement("New round. Article 1 of 10.");
+    setAnnouncement(`New round. Article 1 of ${size}.`);
+  }
+
+  function switchMode(nextMode) {
+    if (!catalog || busy.current || nextMode === mode) return;
+    const next = loadRound(catalog.articles, nextMode);
+    setRound(next);
+    setLastPlaced(null);
+    setRankInput("");
+    setRankError("");
+    setModal(null);
+    setAnnouncement(
+      `${ROUND_MODES[nextMode].label} mode. ${next.placed} of ${roundSize(next)} ranked.`,
+    );
+  }
+
+  function submitRank(event) {
+    event.preventDefault();
+    const index = Number(rankInput) - 1;
+    if (!Number.isInteger(index) || index < 0 || index >= size) return;
+    if (round.slots[index]) {
+      setRankError(`Rank ${index + 1} is already filled.`);
+      return;
+    }
+    rank(index);
   }
 
   function requestNewRound() {
-    if (round?.placed > 0 && round.placed < ROUND_SIZE)
-      setModal({ type: "restart" });
+    if (round?.placed > 0 && round.placed < size) setModal({ type: "restart" });
     else newRound();
   }
 
-  const complete = round?.placed === ROUND_SIZE;
+  const complete = round?.placed === size;
   const current = round && !complete ? round.deck[round.placed] : null;
 
   return (
-    <div className="page">
+    <div className={`page ${expert ? "expert-mode" : ""}`}>
       <header className="site-header">
         <a
           href={import.meta.env.BASE_URL}
@@ -309,7 +326,19 @@ function App() {
       <main>
         <h1>Blind rank everything</h1>
         <div className="page-tools">
-          <span className="current-tab">{complete ? "Results" : "Rank"}</span>
+          <div className="mode-switch" role="group" aria-label="Game mode">
+            {Object.entries(ROUND_MODES).map(([key, option]) => (
+              <button
+                key={key}
+                className={`mode-button ${mode === key ? "current-tab" : ""}`}
+                aria-pressed={mode === key}
+                disabled={!round || leaving}
+                onClick={() => switchMode(key)}
+              >
+                {option.label} <span>{option.size}</span>
+              </button>
+            ))}
+          </div>
           <button
             className="text-button"
             onClick={requestNewRound}
@@ -319,7 +348,8 @@ function App() {
           </button>
         </div>
         <p className="page-description">
-          Ten Wikipedia articles. Rank them before you know what comes next.
+          {expert ? "Thirty" : "Ten"} Wikipedia articles. Rank them before you
+          know what comes next.
         </p>
         <section
           className="game"
@@ -338,12 +368,12 @@ function App() {
               </button>
             </div>
           ) : (
-            <div className="game-content">
+            <div className="game-content" key={mode}>
               <div className="reveal-column" ref={reveal}>
                 <div className="column-heading">
                   {complete
                     ? "Round complete"
-                    : `Article ${round.placed + 1} of 10`}
+                    : `Article ${round.placed + 1} of ${size}`}
                 </div>
                 {complete ? (
                   <section className="completion-card">
@@ -374,11 +404,41 @@ function App() {
                     leaving={leaving}
                   />
                 )}
+                {expert && !complete && (
+                  <form className="rank-entry" onSubmit={submitRank}>
+                    <label htmlFor="rank-choice">Rank</label>
+                    <input
+                      id="rank-choice"
+                      type="number"
+                      inputMode="numeric"
+                      min="1"
+                      max={size}
+                      step="1"
+                      required
+                      placeholder="1–30"
+                      value={rankInput}
+                      onChange={(event) => {
+                        setRankInput(event.target.value);
+                        setRankError("");
+                      }}
+                      aria-describedby={rankError ? "rank-error" : undefined}
+                      aria-invalid={Boolean(rankError)}
+                    />
+                    <button className="standard-button" disabled={leaving}>
+                      Place
+                    </button>
+                    {rankError && (
+                      <p id="rank-error" className="rank-error" role="alert">
+                        {rankError}
+                      </p>
+                    )}
+                  </form>
+                )}
               </div>
               <div className="ranking-column">
                 <div className="column-heading">
                   <span>Your ranking</span>
-                  <span className="rank-endpoints">1 best · 10 worst</span>
+                  <span className="rank-endpoints">1 best · {size} worst</span>
                 </div>
                 <div className="ranking-slots" aria-label="Ranking slots">
                   {round.slots.map((article, index) => (
@@ -420,7 +480,9 @@ function App() {
                     </button>
                   ))}
                 </div>
-                <div className="rank-status">{round.placed} of 10 ranked</div>
+                <div className="rank-status">
+                  {round.placed} of {size} ranked
+                </div>
               </div>
             </div>
           )}
@@ -466,14 +528,18 @@ function App() {
       {modal?.type === "rules" && (
         <Modal title="How to play" onClose={() => setModal(null)}>
           <p>
-            Place each article in an empty slot from 1 (best) to 10 (worst).
+            Place each article in an empty slot from 1 (best) to {size} (worst).
             Each choice is final. The next article appears after you choose.
           </p>
           <p>
             Hover over an image or tap its info button for the description.
             Click the title to read the full Wikipedia article.
           </p>
-          <p>Keyboard shortcuts: 1–9, and 0 for tenth place.</p>
+          <p>
+            {expert
+              ? "Enter a rank from 1 to 30 and press Enter, or choose a slot."
+              : "Keyboard shortcuts: 1–9, and 0 for tenth place."}
+          </p>
         </Modal>
       )}
       {modal?.type === "restart" && (
@@ -497,7 +563,7 @@ function App() {
           <p>
             Each round contains four events, three ideas, one culture topic, one
             food or drink, and one article about nature or a place. Biographies
-            are excluded.
+            are excluded. Expert mode triples this mix to 30 articles.
           </p>
           <p>
             Articles come from Wikipedia’s most-read lists and a selection of
@@ -505,9 +571,9 @@ function App() {
             category.
           </p>
           <p>
-            Your round and the articles you’ve seen are saved in this browser.
-            The app checks for new popular articles when opened, at most once
-            per day after a successful check.
+            Each mode saves its own round in this browser, along with the
+            articles you’ve seen. The app checks for new popular articles when
+            opened, at most once per day after a successful check.
           </p>
           <p>
             Article text is from{" "}

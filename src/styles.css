@@ -15,6 +15,7 @@ body {
   margin: 0;
 }
 button,
+input,
 textarea {
   font: inherit;
 }
@@ -39,6 +40,7 @@ a {
   touch-action: manipulation;
 }
 button:focus-visible,
+input:focus-visible,
 a:focus-visible,
 textarea:focus-visible {
   outline: 2px solid var(--blue);
@@ -104,6 +106,86 @@ h1 {
   border-bottom: 2px solid #202122;
   padding: 0 1px;
   margin-bottom: -1px;
+}
+.mode-switch {
+  display: flex;
+  height: 100%;
+  gap: 24px;
+}
+.mode-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 1px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--blue);
+  font-size: 14px;
+}
+.mode-button.current-tab {
+  border-bottom-color: #202122;
+  color: #202122;
+}
+.mode-button span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.rank-entry {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+  font-size: 14px;
+}
+.rank-entry input {
+  width: 90px;
+  min-height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 6px 8px;
+  background: #fff;
+  color: #202122;
+  font-size: 16px;
+}
+.rank-error {
+  flex-basis: 100%;
+  color: #b32424;
+}
+.expert-mode {
+  max-width: 1480px;
+}
+.expert-mode .game-content {
+  grid-template-columns: minmax(260px, 0.9fr) minmax(0, 2fr);
+  gap: 32px;
+}
+.expert-mode .reveal-column {
+  position: sticky;
+  top: 20px;
+}
+.expert-mode .ranking-slots {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(10, 44px);
+}
+.expert-mode .rank-slot {
+  height: 44px;
+  gap: 8px;
+  padding-right: 8px;
+}
+.expert-mode .rank-slot:nth-child(-n + 20) {
+  border-right: 1px solid var(--border);
+}
+.expert-mode .rank-slot:nth-child(10n) {
+  border-bottom: 0;
+}
+.expert-mode .rank-number {
+  flex-basis: 34px;
+}
+.expert-mode .slot-arrow {
+  display: none;
 }
 .page-description {
   font-size: 14px;
@@ -532,6 +614,12 @@ h1 {
   }
 }
 @media (max-width: 950px) {
+  .expert-mode .game-content {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .expert-mode .reveal-column {
+    position: static;
+  }
   .page {
     padding: 0 32px;
   }
@@ -598,6 +686,23 @@ h1 {
   }
   .rank-slot:nth-child(5) {
     border-bottom: 0;
+  }
+  .expert-mode .ranking-slots {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(15, 44px);
+  }
+  .expert-mode .rank-slot:nth-child(n) {
+    border-right: 0;
+    border-bottom: 1px solid #c8ccd1;
+  }
+  .expert-mode .rank-slot:nth-child(-n + 15) {
+    border-right: 1px solid var(--border);
+  }
+  .expert-mode .rank-slot:nth-child(15n) {
+    border-bottom: 0;
+  }
+  .expert-mode .card-photo {
+    height: 220px;
   }
   .rank-number {
     flex-basis: 31px;
